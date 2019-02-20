@@ -5,7 +5,7 @@ Execution dans un terminal
 Exemple:
    python non_lineaire_classification.py rbf 100 200 0 0
 
-Vos Noms (Vos Matricules) .~= À MODIFIER =~.
+Audrey Duran
 """
 
 import numpy as np
@@ -50,11 +50,15 @@ def main():
     else:
         mp.validation_croisee(x_train, t_train)
 
-    # ~= À MODIFIER =~. 
+    # ~= À MODIFIER =~.
     # AJOUTER CODE AFIN DE CALCULER L'ERREUR D'APPRENTISSAGE
     # ET DE VALIDATION EN % DU NOMBRE DE POINTS MAL CLASSES
-    err_train = 50
-    err_test = 50
+
+    err_train = mp.erreur(t_train, np.array([mp.prediction(x) for x in x_train]))
+    err_test = mp.erreur(t_test, np.array([mp.prediction(x) for x in x_test]))
+
+    err_train = 100 * np.sum(err_train) / len(t_train)
+    err_test = 100 * np.sum(err_test) / len(t_test)
 
     print('Erreur train = ', err_train, '%')
     print('Erreur test = ', err_test, '%')

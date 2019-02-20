@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 #####
-# Vos Noms (Vos Matricules) .~= À MODIFIER =~.
+# Audrey Duran
 ###
 
 import numpy as np
@@ -17,7 +17,7 @@ class MAPnoyau:
         sigma_square: paramètre du noyau rbf
         b, d: paramètres du noyau sigmoidal
         M,c: paramètres du noyau polynomial
-        noyau: rbf, lineaire, olynomial ou sigmoidal
+        noyau: rbf, lineaire, polynomial ou sigmoidal
         """
         self.lamb = lamb
         self.a = None
@@ -29,7 +29,7 @@ class MAPnoyau:
         self.noyau = noyau
         self.x_train = None
 
-        
+
 
     def entrainement(self, x_train, t_train):
         """
@@ -51,7 +51,39 @@ class MAPnoyau:
         d'apprentissage dans ``self.x_train``
         """
         #AJOUTER CODE ICI
-        
+        N = len(t_train)
+        # x = x_train[:,0]
+        # y = x_train[:,1]
+
+        if self.noyau == 'rbf':
+            # We use ||a-b|| = a**2 + 2ab - b**2
+            x_norm = np.sum(x_train ** 2, axis = 1)
+            K = np.exp(- ((x_norm[:, None] + x_norm[None, :] - 2 * \
+             x_train.dot(x_train.T)) / 2 * self.sigma_square))
+
+        elif self.noyau == 'lineaire':
+            K = np.zeros((N, N))
+            for n in range(N):
+                for m in range(N):
+                    K[n, m] = x_train[n].T.dot(x_train[m])
+
+        elif self.noyau == 'polynomial':
+            K = np.zeros((N, N))
+            for n in range(N):
+                for m in range(N):
+                    K[n,m] = (x_train[n].T.dot(x_train[m]) + self.c)**self.M
+
+        elif self.noyau == 'sigmoidal':
+            K = np.zeros((N, N))
+            for n in range(N):
+                for m in range(N):
+                    K = np.tanh(self.b * x_train[n].T.dot(x_train[m]) + self.d)
+
+        #mettre else erreur
+
+        self.a = (K + self.lamb * np.eye(N, N))**-1 * t_train
+        self.x_train = x_train
+
     def prediction(self, x):
         """
         Retourne la prédiction pour une entrée representée par un tableau
@@ -66,7 +98,21 @@ class MAPnoyau:
         sinon
         """
         #AJOUTER CODE ICI
-        return 0
+        if self.noyau == 'rbf':
+            K = np.exp(-(self.x_train - x)**2 / 2 * self.sigma_square)
+
+        elif self.noyau == 'lineaire':
+            # K = x_train.T.dot(x_train)
+            K = self.x_train.dot(x)
+
+        elif self.noyau == 'polynomial':
+            K = (self.x_train.dot(x) + self.c)**self.M
+
+        elif self.noyau == 'sigmoidal':
+            K = np.tanh(self.b * self.x_train.dot(x) + self.d)
+
+        y = np.sum(K.T.dot(self.a))
+        return int(y > 0.5)
 
     def erreur(self, t, prediction):
         """
@@ -74,7 +120,7 @@ class MAPnoyau:
         la cible ``t`` et la prédiction ``prediction``.
         """
         # AJOUTER CODE ICI
-        return 0.
+        return (t-prediction)**2
 
     def validation_croisee(self, x_tab, t_tab):
         """
@@ -89,6 +135,66 @@ class MAPnoyau:
         de ''self.b'' et ''self.d'' de 0.00001 à 0.01 et ``self.M`` de 2 à 6
         """
         # AJOUTER CODE ICI
+        lamb_values = [1e-9, 1e-8, 1e-7, 1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1, 2]
+        best_lamb = None
+        best_err = 100 #initialisation a 100% erreur
+
+        N = len(t_tab)
+        indexes = np.random.choice(range(N), size = round(N/3), replace = False)
+        x_fold = x_tab[indexes] #test prediction sur 1/3 des donnees
+        t_fold = t_tab[indexes]
+
+        x_train = x_tab[-indexes]
+        t_train = t_tab[-indexes]
+
+        if self.noyau == 'rbf':
+            # self.sigma_square
+            best_sigma_square = None
+
+            sigma_square_values = \
+             [1e-9, 1e-8, 1e-7, 1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1, 2]
+
+            for sigma_square in sigma_square_values :
+                self.sigma_square = sigma_square
+                for lamb in lamb_values:
+                    self.lamb = lamb
+                    self.entrainement(x_train, t_train)
+
+                    t_pred = np.array([self.prediction(x) for x in x_fold])
+                    err =100*np.sum(self.erreur(t_fold, t_pred))/len(t_fold)
+                    print(sigma_square, lamb, err)
+                    if err < best_err :
+                         best_err = err
+                         best_lamb = lamb
+                         best_sigma_square = sigma_square
+
+
+            self.lamb = best_lamb
+            self.sigma_square = best_sigma_square
+
+            self.entrainement(x_tab, t_tab)
+
+
+        elif self.noyau == 'lineaire':
+            pass
+
+
+        elif self.noyau == 'polynomial':
+            # self.c et self.M
+            best_c = None
+            best_M = None
+            c_values = [0, 1, 2, 3, 4, 5]
+            M_values = [2, 3, 4, 5, 6]
+
+        elif self.noyau == 'sigmoidal':
+            #self.b et self.d
+            best_b = None
+            best_d = None
+
+            b_values = [1e-5, 1e-4, 1e-3, 1e-2]
+            d_values = [1e-5, 1e-4, 1e-3, 1e-2]
+
+
 
     def affichage(self, x_tab, t_tab):
 
