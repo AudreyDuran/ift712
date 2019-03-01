@@ -49,6 +49,7 @@ class LinearClassifier(object):
         num_iter = num_epochs * len(self.x_train)
         for i in range(num_iter):
             # Take a sample
+
             x_sample = self.x_train[sample_idx]
             y_sample = self.y_train[sample_idx]
             if self.bias:
@@ -91,7 +92,17 @@ class LinearClassifier(object):
         #############################################################################
         # TODO: Return the best class label.                                        #
         #############################################################################
+        # if X is one sample
+        if len(X.shape) == 1:
+            class_label = np.argmax(X.dot(self.W))
 
+        # if X contains many sample
+        elif len(X.shape) > 1 :
+            # if bias is true but X has not the expected size
+            if self.bias and X.shape[1] == (self.W.shape[0] -1) :
+                X = augment(X)
+            for i in range(X.shape[0]):
+                class_label[i] = np.argmax(X[i].dot(self.W))
         #############################################################################
         #                          END OF YOUR CODE                                 #
         #############################################################################
@@ -102,7 +113,7 @@ class LinearClassifier(object):
         Compute average accuracy and cross_entropy for a series of N data points.
         Naive implementation (with loop)
         Inputs:
-        - X: A numpy array of shape (D, N) containing many samples.
+        - X: A numpy array of shape (N, D) containing many samples. # moi: D, N -> N, D
         - y: A numpy array of shape (N) labels as an integer
         - reg: (float) regularization strength
         Returns a tuple of:
@@ -114,6 +125,18 @@ class LinearClassifier(object):
         #############################################################################
         # TODO: Compute the softmax loss & accuracy for a series of samples X,y .   #
         #############################################################################
+        N = y.shape[0]
+
+        for i in range(N):
+            if self.bias:
+                Xi = augment(X[i]) # add the bias
+            Li, _ = self.cross_entropy_loss(Xi, y[i], reg)
+            loss += Li
+            if self.predict(Xi) == y[i]:
+                accu += 1
+
+        loss = loss/ N
+        accu /= N
 
         #############################################################################
         #                          END OF YOUR CODE                                 #
@@ -147,6 +170,23 @@ class LinearClassifier(object):
         # 3- Dont forget the regularization!                                        #
         # 4- Compute gradient => eq.(4.104)                                         #
         #############################################################################
+        C = self.W.shape[1]
+
+        # Compute softmax
+        scores = x.dot(self.W)
+        scores -= max(scores) # on decale les scores pr pas avoir des valeurs tp gdes
+        correct_score = scores[y]
+        e_sj = np.sum(np.exp(scores)) + 1e-8 #to avoid /0
+        softmax = np.exp(correct_score) / e_sj
+
+        # Compute cross entropy loss
+        loss = - y * np.log(softmax) + reg * np.sum(self.W**2)
+
+        # Compute gradient
+        for k in range(C):
+            dW[:, k] += ((np.exp(scores[k])/e_sj) - (k == y)) * x.T
+
+        dW += 2 * reg * self.W
 
         #############################################################################
         #                          END OF YOUR CODE                                 #
