@@ -54,15 +54,15 @@ class TwoLayerClassifier(object):
             loss_train = self.net.forward_backward(x_sample, y_sample)
 
             # Take gradient step
+            #print(np.sum(self.net.parameters[0]), np.sum(self.net.parameters[1]))
             for w, dw in zip(self.net.parameters, self.net.gradients):
                 self.momentum_update(w, dw, lr, momentum)
-
             # Advance in data
             sample_idx += 1
             if sample_idx >= len(self.x_train):  # End of epoch
 
                 accu_train, loss_train = self.global_accuracy_and_cross_entropy_loss(self.x_train, self.y_train)
-                accu_val, loss_val, = self.global_accuracy_and_cross_entropy_loss(self.x_val, self.y_val)
+                accu_val, loss_val = self.global_accuracy_and_cross_entropy_loss(self.x_val, self.y_val) # virgule enlevee
 
                 loss_train_curve.append(loss_train)
                 loss_val_curve.append(loss_val)
@@ -80,7 +80,7 @@ class TwoLayerClassifier(object):
         Returns the most likely class label associated to x
         Naive implementation (with loop)
         Inputs:
-        - X: A numpy array of shape (D, N) containing one or many samples.
+        - X: A numpy array of shape (N, D) containing one or many samples.
         Returns a tuple of:
         - A numpy array of shape (N) containing one or many class label
         """
@@ -88,7 +88,8 @@ class TwoLayerClassifier(object):
             #############################################################################
             # TODO: return the most probable class label for one sample.                #
             #############################################################################
-            return 0
+            class_label = np.argmax(self.net.forward(x))
+            return class_label
             #############################################################################
             #                          END OF YOUR CODE                                 #
             #############################################################################
@@ -97,6 +98,10 @@ class TwoLayerClassifier(object):
             #############################################################################
             # TODO: return the most probable class label for many samples               #
             #############################################################################
+            class_label = np.zeros(x.shape[0])
+            for i in range(x.shape[0]):
+                class_label[i] = np.argmax(self.net.forward(x[i]))
+
             return np.zeros(x.shape[0])
             #############################################################################
             #                          END OF YOUR CODE                                 #
@@ -107,7 +112,7 @@ class TwoLayerClassifier(object):
         Compute average accuracy and cross_entropy for a series of N data points.
         Naive implementation (with loop)
         Inputs:
-        - x: A numpy array of shape (D, N) containing several samples.
+        - x: A numpy array of shape (N, D) containing several samples.
         - y: A numpy array of shape (N) labels as an integer
         - reg: (float) L2 regularization strength
         Returns a tuple of:
@@ -122,7 +127,19 @@ class TwoLayerClassifier(object):
         #############################################################################
         # TODO: Compute the softmax loss & accuracy for a series of samples X,y .   #
         #############################################################################
+        N = y.shape[0]
 
+        for i in range(N): # for each sample
+            scores = self.net.forward(x[i])
+            #print(scores)
+            Li, _ = self.net.cross_entropy_loss(scores, y[i])
+            # Li = self.net.forward_backward(x[i], y[i])
+            loss += Li
+            if self.predict(x[i]) == y[i]:
+                accu += 1
+
+        loss /= N
+        accu /= N
         #############################################################################
         #                          END OF YOUR CODE                                 #
         #############################################################################
@@ -143,7 +160,8 @@ class TwoLayerClassifier(object):
         #############################################################################
         # TODO: update w with momentum                                              #
         #############################################################################
-        v=0 # remove this line
+        v = mu * v_prev - lr * dw
+        w += v
         #############################################################################
         #                          END OF YOUR CODE                                 #
         #############################################################################
@@ -206,7 +224,8 @@ class TwoLayerNet(object):
         """
 
         loss = 999.9
-        dloss_dscores = np.zeros(np.size(scores))
+        dloss_dscores = np.zeros(np.size(scores)) #(4,)
+        #print(self.parameters[1].shape) #W1 : (3,10) #W2 : (11,4)
 
         #############################################################################
         # TODO: Compute the softmax loss and its gradient.                          #
@@ -214,8 +233,26 @@ class TwoLayerNet(object):
         # 1- Compute softmax => eq.(4.104) or eq.(5.25) Bishop                      #
         # 2- Compute cross-entropy loss => eq.(4.108)                               #
         # 3- Dont forget the regularization!                                        #
-        # 4- Compute gradient with respect to the score => eq.(4.104) with phi_n=1  #
+        # 4- Compute gradient with respect to the score => eq.(4.109) with phi_n=1  #
         #############################################################################
+        C = scores.shape[0]
+
+        #  Compute softmax
+        scores -= max(scores) # on decale les scores pr pas avoir des valeurs tp gdes
+        correct_score = scores[y]
+        e_sj = np.sum(np.exp(scores)) + 1e-8 #to avoid /0
+        softmax = np.exp(correct_score) / e_sj
+
+        # Compute cross-entropy loss
+        loss = - np.log(softmax) + 1/2 * self.l2_reg * (np.sum(self.parameters[0]**2) \
+         + np.sum(self.parameters[1]**2))
+
+        # Compute gradient with respect to the score
+        probs = np.exp(scores) / np.sum(np.exp(scores))
+        dloss_dscores = probs
+        dloss_dscores[y] -= 1
+        # dloss_dscores = probs - y
+        # dloss_dscores = softmax * (1 - probs)
 
         #############################################################################
         #                          END OF YOUR CODE                                 #
@@ -264,8 +301,15 @@ class DenseLayer(object):
         # TODO: Compute forward pass.  Do not forget to add 1 to x in case of bias  #
         # C.f. function augment(x)                                                  #
         #############################################################################
-        f = self.W[1] ## REMOVE THIS LINE
-
+        #f = self.W[1] ## REMOVE THIS LINE
+        if self.activation == 'sigmoid':
+            f = sigmoid(x.dot(self.W))
+        elif self.activation == 'relu':
+            f1 = x.dot(self.W)
+            f = f1
+            f[f<0] = 0.0
+        else: #'None'
+            f = x.dot(self.W)
         #############################################################################
         #                          END OF YOUR CODE                                 #
         #############################################################################

@@ -135,7 +135,7 @@ class LinearClassifier(object):
             if self.predict(Xi) == y[i]:
                 accu += 1
 
-        loss = loss/ N
+        loss /= N
         accu /= N
 
         #############################################################################
@@ -180,7 +180,7 @@ class LinearClassifier(object):
         softmax = np.exp(correct_score) / e_sj
 
         # Compute cross entropy loss
-        loss = - y * np.log(softmax) + reg * np.sum(self.W**2)
+        loss = - np.log(softmax) + reg * np.sum(self.W**2)
 
         # Compute gradient
         for k in range(C):
