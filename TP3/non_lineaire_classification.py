@@ -3,7 +3,7 @@
 Execution dans un terminal
 
 Exemple:
-   python non_lineaire_classification.py rbf 100 200 0 0
+   python non_lineaire_classification.py rbf 100 200 1 0
 
 Audrey Duran
 """
@@ -48,6 +48,7 @@ def main():
     if vc is False:
         mp.entrainement(x_train, t_train)
     else:
+        # mp.entrainement(x_train, t_train)
         mp.validation_croisee(x_train, t_train)
 
     # ~= À MODIFIER =~.
@@ -65,6 +66,7 @@ def main():
     analyse_erreur(err_train, err_test)
 
     # Affichage
+    mp.affichage(x_train, t_train)
     mp.affichage(x_test, t_test)
 
 if __name__ == "__main__":
