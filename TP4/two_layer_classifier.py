@@ -130,10 +130,9 @@ class TwoLayerClassifier(object):
         N = y.shape[0]
 
         for i in range(N): # for each sample
-            scores = self.net.forward(x[i])
-            #print(scores)
-            Li, _ = self.net.cross_entropy_loss(scores, y[i])
-            # Li = self.net.forward_backward(x[i], y[i])
+            # scores = self.net.forward(x[i])
+            # Li, _ = self.net.cross_entropy_loss(scores, y[i])
+            Li = self.net.forward_backward(x[i], y[i])
             loss += Li
             if self.predict(x[i]) == y[i]:
                 accu += 1
@@ -244,15 +243,17 @@ class TwoLayerNet(object):
         softmax = np.exp(correct_score) / e_sj
 
         # Compute cross-entropy loss
-        loss = - np.log(softmax) + 1/2 * self.l2_reg * (np.sum(self.parameters[0]**2) \
-         + np.sum(self.parameters[1]**2))
+        loss = - np.log(softmax) + 1/2 * self.l2_reg * ((np.sum(self.parameters[0])**2 \
+         + (np.sum(self.parameters[1]))**2))
 
         # Compute gradient with respect to the score
         probs = np.exp(scores) / np.sum(np.exp(scores))
         dloss_dscores = probs
         dloss_dscores[y] -= 1
-        # dloss_dscores = probs - y
+
         # dloss_dscores = softmax * (1 - probs)
+        # dloss_dscores = probs - y
+
 
         #############################################################################
         #                          END OF YOUR CODE                                 #
@@ -301,7 +302,6 @@ class DenseLayer(object):
         # TODO: Compute forward pass.  Do not forget to add 1 to x in case of bias  #
         # C.f. function augment(x)                                                  #
         #############################################################################
-        #f = self.W[1] ## REMOVE THIS LINE
         if self.activation == 'sigmoid':
             f = sigmoid(x.dot(self.W))
         elif self.activation == 'relu':
