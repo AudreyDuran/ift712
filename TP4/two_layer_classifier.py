@@ -222,8 +222,6 @@ class TwoLayerNet(object):
         - gradient with respect to weights; an array of same shape as W1 and W2
         """
 
-        # loss = 999.9
-        # dloss_dscores = np.zeros(np.size(scores)) #(4,)
         #print(self.parameters[1].shape) #W1 : (3,10) #W2 : (11,4)
 
         #############################################################################
@@ -234,12 +232,11 @@ class TwoLayerNet(object):
         # 3- Dont forget the regularization!                                        #
         # 4- Compute gradient with respect to the score => eq.(4.109) with phi_n=1  #
         #############################################################################
-        C = scores.shape[0]
 
         #  Compute softmax
         scores -= np.max(scores) # on decale les scores pr pas avoir des valeurs tp gdes
         correct_score = scores[y]
-        e_sj = np.sum(np.exp(scores)) + 1e-8 #to avoid /0
+        e_sj = np.sum(np.exp(scores)) + 1e-8  # to avoid /0
         softmax = np.exp(correct_score) / e_sj
 
         # Compute cross-entropy loss
@@ -251,15 +248,8 @@ class TwoLayerNet(object):
 
         # Compute gradient with respect to the score
         probs = np.exp(scores) / np.sum(np.exp(scores))
-        #dloss_dscores = probs - (np.arange(len(scores)) == y)
-        # dloss_dscores[y] -= 1
-
-        # dloss_dscores = softmax * (1 - probs)
-        # dloss_dscores = probs - y
-
-
-        dloss_dscores = probs - (np.arange(len(scores)) == y)
-
+        dloss_dscores = probs
+        dloss_dscores[y] -= 1
 
         #############################################################################
         #                          END OF YOUR CODE                                 #
