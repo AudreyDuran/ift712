@@ -133,7 +133,7 @@ class LinearClassifier(object):
             Li, _ = self.cross_entropy_loss(Xi, y[i], reg)
             loss += Li
             if self.predict(Xi) == y[i]:
-                accu += 1
+                accu += 1.
 
         loss /= N
         accu /= N

@@ -102,7 +102,7 @@ class TwoLayerClassifier(object):
             for i in range(x.shape[0]):
                 class_label[i] = np.argmax(self.net.forward(x[i]))
 
-            return np.zeros(x.shape[0])
+            return class_label # je renvoyais 0 !!!
             #############################################################################
             #                          END OF YOUR CODE                                 #
             #############################################################################
@@ -130,12 +130,12 @@ class TwoLayerClassifier(object):
         N = y.shape[0]
 
         for i in range(N): # for each sample
-            # scores = self.net.forward(x[i])
-            # Li, _ = self.net.cross_entropy_loss(scores, y[i])
-            Li = self.net.forward_backward(x[i], y[i])
+            scores = self.net.forward(x[i])
+            Li, _ = self.net.cross_entropy_loss(scores, y[i])
+            # Li = self.net.forward_backward(x[i], y[i])
             loss += Li
             if self.predict(x[i]) == y[i]:
-                accu += 1
+                accu += 1. # attention 1. sinon soit 1 soit 0
 
         loss /= N
         accu /= N
@@ -222,8 +222,8 @@ class TwoLayerNet(object):
         - gradient with respect to weights; an array of same shape as W1 and W2
         """
 
-        loss = 999.9
-        dloss_dscores = np.zeros(np.size(scores)) #(4,)
+        # loss = 999.9
+        # dloss_dscores = np.zeros(np.size(scores)) #(4,)
         #print(self.parameters[1].shape) #W1 : (3,10) #W2 : (11,4)
 
         #############################################################################
@@ -237,22 +237,28 @@ class TwoLayerNet(object):
         C = scores.shape[0]
 
         #  Compute softmax
-        scores -= max(scores) # on decale les scores pr pas avoir des valeurs tp gdes
+        scores -= np.max(scores) # on decale les scores pr pas avoir des valeurs tp gdes
         correct_score = scores[y]
         e_sj = np.sum(np.exp(scores)) + 1e-8 #to avoid /0
         softmax = np.exp(correct_score) / e_sj
 
         # Compute cross-entropy loss
-        loss = - np.log(softmax) + 1/2 * self.l2_reg * ((np.sum(self.parameters[0])**2 \
-         + (np.sum(self.parameters[1]))**2))
+        loss = - np.log(softmax)
+
+        # Regularization cost
+        for w in zip(self.parameters):
+            loss += 0.5 * self.l2_reg * np.sum(np.square(w))
 
         # Compute gradient with respect to the score
         probs = np.exp(scores) / np.sum(np.exp(scores))
-        dloss_dscores = probs
-        dloss_dscores[y] -= 1
+        #dloss_dscores = probs - (np.arange(len(scores)) == y)
+        # dloss_dscores[y] -= 1
 
         # dloss_dscores = softmax * (1 - probs)
         # dloss_dscores = probs - y
+
+
+        dloss_dscores = probs - (np.arange(len(scores)) == y)
 
 
         #############################################################################
